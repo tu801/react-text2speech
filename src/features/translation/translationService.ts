@@ -1,3 +1,7 @@
+import { GeminiTranslator } from '@/libs/ai/gemini';
+import { OllamaTranslator } from '@/libs/ai/ollama';
+import { OpenAITranslator } from '@/libs/ai/openai';
+
 export interface TranslationRequest {
   text: string;
   targetLang: string;
@@ -17,25 +21,28 @@ export class TranslationService {
     model,
     ollamaBaseUrl,
   }: TranslationRequest): Promise<string> {
-    const response = await fetch("/api/translate", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        text,
-        targetLang,
-        model,
-        ollamaBaseUrl,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData: TranslationResponse = await response.json();
-      throw new Error(errorData.error || "Translation failed");
+    let response;
+    switch (model) {
+      case 'openai':
+        const openAITrans = new OpenAITranslator();
+        response = await openAITrans.translate(text, targetLang);
+        break;
+      case 'gemini':
+        const geminiTrans = new GeminiTranslator();
+        response = await geminiTrans.translate(text, targetLang);
+        break;
+      case 'ollama':
+        const ollamaTrans = new OllamaTranslator();
+        response = await ollamaTrans.translate(text, targetLang);
+        break;
     }
 
-    const data: TranslationResponse = await response.json();
-    return data.translatedText || "Translation failed";
+    if (!response) {
+      // const errorData: TranslationResponse = await response.json();
+      throw new Error('Translation failed');
+    }
+
+    // const data: TranslationResponse = await response.json();
+    return response || 'Translation failed';
   }
 }
